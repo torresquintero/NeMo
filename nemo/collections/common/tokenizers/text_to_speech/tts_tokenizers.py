@@ -572,6 +572,7 @@ class EnglishPhonemesTokenizer(BaseTokenizer):
 
         text = self.text_preprocessing_func(text)
         g2p_text = self.g2p(text)  # TODO: handle infer
+        logging.info(f'*************The phonemes are {g2p_text}')
         return self.encode_from_g2p(g2p_text, text)
 
     def encode_from_g2p(self, g2p_text: List[str], raw_text: Optional[str] = None):

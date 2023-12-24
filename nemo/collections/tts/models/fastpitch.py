@@ -53,12 +53,10 @@ from nemo.core.neural_types.neural_type import NeuralType
 from nemo.utils import logging, model_utils
 
 
+# Ale, note that this config is not used for pretrained models
 @dataclass
 class G2PConfig:
-    _target_: str = "nemo.collections.tts.g2p.models.en_us_arpabet.EnglishG2p"
-    phoneme_dict: str = "scripts/tts_dataset_files/cmudict-0.7b_nv22.10"
-    heteronyms: str = "scripts/tts_dataset_files/heteronyms-052722"
-    phoneme_probability: float = 0.5
+    _target_: str = "nemo.collections.tts.g2p.models.en_us_arpabet.ESpeakG2p"
 
 
 @dataclass

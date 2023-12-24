@@ -20,8 +20,10 @@ from typing import Optional
 
 import nltk
 import torch
+from phonemizer import phonemize
 
 from nemo.collections.common.tokenizers.text_to_speech.tokenizer_utils import english_word_tokenize
+from nemo.collections.tts.g2p.ipa_to_arpabet import ipa2arpabet
 from nemo.collections.tts.g2p.models.base import BaseG2p
 from nemo.utils import logging
 from nemo.utils.get_rank import is_global_rank_zero
@@ -197,27 +199,67 @@ class EnglishG2p(BaseG2p):
         else:
             return word, False
 
+    # def __call__(self, text):
+    #     words = self.word_tokenize_func(text)
+
+    #     prons = []
+    #     for word, without_changes in words:
+    #         if without_changes:
+    #             prons.extend(word)
+    #             continue
+
+    #         word_str = word[0]
+    #         word_by_hyphen = word_str.split("-")
+    #         pron, is_handled = self.parse_one_word(word_str)
+
+    #         if not is_handled and len(word_by_hyphen) > 1:
+    #             pron = []
+    #             for sub_word in word_by_hyphen:
+    #                 p, _ = self.parse_one_word(sub_word)
+    #                 pron.extend(p)
+    #                 pron.extend(["-"])
+    #             pron.pop()
+
+    #         prons.extend(pron)
+
+    #     return prons
+
     def __call__(self, text):
-        words = self.word_tokenize_func(text)
+        # Overwrite the phonemiser call for a pretrained model
+        phonemised = phonemize(text, with_stress=True)
+        phonemised = ipa2arpabet(phonemised)
 
-        prons = []
-        for word, without_changes in words:
-            if without_changes:
-                prons.extend(word)
-                continue
+        return phonemised
 
-            word_str = word[0]
-            word_by_hyphen = word_str.split("-")
-            pron, is_handled = self.parse_one_word(word_str)
 
-            if not is_handled and len(word_by_hyphen) > 1:
-                pron = []
-                for sub_word in word_by_hyphen:
-                    p, _ = self.parse_one_word(sub_word)
-                    pron.extend(p)
-                    pron.extend(["-"])
-                pron.pop()
+class ESpeakG2p(BaseG2p):
+    def __init__(
+        self,
+        phoneme_dict=None,
+        word_tokenize_func=None,
+        apply_to_oov_word=None,
+        ignore_ambiguous_words=True,
+        heteronyms=None,
+        phoneme_probability: Optional[float] = 1.0,
+        mapping_file: Optional[str] = None,
+    ):
+        """My custom G2P module. This module converts words from grapheme to ARPABET phoneme representations
+        using espeak and my custom mapping.
+        """
+        super().__init__(
+            phoneme_dict=phoneme_dict,
+            word_tokenize_func=word_tokenize_func,
+            apply_to_oov_word=apply_to_oov_word,
+            mapping_file=mapping_file,
+        )
 
-            prons.extend(pron)
+        self.ignore_ambiguous_words = ignore_ambiguous_words
+        self.heteronyms = heteronyms
+        self.phoneme_probability = phoneme_probability
+        self._rng = random.Random()
 
-        return prons
+    def __call__(self, text):
+        phonemised = phonemize(text, with_stress=True)
+        phonemised = ipa2arpabet(phonemised)
+
+        return phonemised
